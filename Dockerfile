@@ -1,5 +1,5 @@
 # Use the base image
-FROM dorowu/ubuntu-desktop-lxde-vnc
+FROM darkdragon001/ubuntu-gnome-vnc
  
 # Expose the port on which NoVNC runs (80 inside the container)
 EXPOSE 80
