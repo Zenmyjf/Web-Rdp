@@ -1,5 +1,5 @@
 # Use the base image
-FROM novaspirit/Alpine_xfce4_noVNC
+FROM accetto/debian-vnc-xfce-chromium-g3
  
 # Expose the port on which NoVNC runs (80 inside the container)
 EXPOSE 80
