@@ -1,5 +1,5 @@
 # Use the base image
-FROM u1ih/ubuntu-novnc
+FROM u1ih/ubuntu-novnc:18.04
  
 # Expose the port on which NoVNC runs (80 inside the container)
 EXPOSE 80
