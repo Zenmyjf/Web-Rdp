@@ -1,5 +1,5 @@
 # Use the base image
-FROM thuonghai2711/ubuntu-novnc-pulseaudio:20.04
+FROM novaspirit/Alpine_xfce4_noVNC
  
 # Expose the port on which NoVNC runs (80 inside the container)
 EXPOSE 80
