@@ -1,5 +1,5 @@
 # Use the base image
-FROM darkdragon001/ubuntu-gnome-vnc
+FROM thuonghai2711/ubuntu-novnc-pulseaudio:20.04
  
 # Expose the port on which NoVNC runs (80 inside the container)
 EXPOSE 80
