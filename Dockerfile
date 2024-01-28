@@ -1,5 +1,5 @@
 # Use the base image
-FROM accetto/debian-vnc-xfce-chromium-g3
+FROM accetto/ubuntu-vnc-xfce-firefox
  
 # Expose the port on which NoVNC runs (80 inside the container)
 EXPOSE 80
