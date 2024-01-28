@@ -21,5 +21,5 @@ RUN chmod 600 ~/.vnc/passwd
 # Set the USER environment variable
 ENV USER=root
 
-# Start the VNC server with XFCE and noVNC
-CMD vncserver :1 -geometry 1280x800 -depth 24 && websockify -D --web=/usr/share/novnc/ --token-plugin TokenFile :6080 localhost:5901
+# Start the VNC server with XFCE
+CMD vncserver :1 -geometry 1280x800 -depth 24 && websockify -D --web=/usr/share/novnc/ 6080 localhost:5901
