@@ -5,7 +5,7 @@ FROM ubuntu:20.04
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Set the timezone to your preferred value (replace "America/New_York" with your desired timezone)
-RUN ln -fs /usr/share/zoneinfo/America/New_York /etc/localtime \
+RUN ln -fs /usr/share/zoneinfo/America /etc/localtime \
     && dpkg-reconfigure --frontend noninteractive tzdata \
     
 # Install required packages (GNOME, VNC, noVNC, etc.)
