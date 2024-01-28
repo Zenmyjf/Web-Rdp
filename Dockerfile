@@ -1,17 +1,14 @@
 # Use an official Ubuntu image
 FROM ubuntu:latest
 
-# Set the keyboard layout (replace "us" with your desired layout)
+# Set the keyboard layout and timezone
 ENV DEBIAN_FRONTEND=noninteractive
-RUN apt-get update && apt-get install -y keyboard-configuration
-RUN echo "keyboard-configuration keyboard-configuration/layout select us" | debconf-set-selections
-RUN dpkg-reconfigure -f noninteractive keyboard-configuration
+RUN apt-get update && apt-get install -y tzdata keyboard-configuration
+RUN ln -snf /usr/share/zoneinfo/America/New_York /etc/localtime && echo "America/New_York" > /etc/timezone
+RUN dpkg-reconfigure -f noninteractive tzdata keyboard-configuration
 
-# Install full GNOME desktop environment
-RUN apt-get install -y ubuntu-gnome-desktop
-
-# Install necessary packages for VNC and noVNC
-RUN apt-get install -y tightvncserver novnc websockify
+# Install full GNOME desktop environment and necessary packages for VNC and noVNC
+RUN apt-get install -y ubuntu-gnome-desktop tightvncserver novnc websockify
 
 # Expose ports for VNC and noVNC
 EXPOSE 5901
@@ -25,4 +22,4 @@ RUN chmod 600 ~/.vnc/passwd
 ENV USER=root
 
 # Start the VNC server with GNOME and noVNC
-CMD vncserver :1 -geometry 1280x800 -depth 24 -extension RANDR -fp /usr/share/fonts/X11/misc && websockify --web=/usr/share/novnc/ 6080 localhost:5901
+CMD ["bash", "-c", "vncserver :1 -geometry 1280x800 -depth 24 -extension RANDR -fp /usr/share/fonts/X11/misc && websockify --web=/usr/share/novnc/ 6080 localhost:5901"]
