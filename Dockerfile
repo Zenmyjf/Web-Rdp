@@ -1,24 +1,28 @@
-# Set up the base image and install the GNOME desktop environment
-FROM ubuntu:20.04
+FROM ubuntu:22.04
 
-# Update the package list and install necessary packages
-RUN apt update -y && apt install -y tasksel
+# Install xfce4 desktop environment
+RUN apt update && apt install -y xfce4 xfce4-goodies xorg
 
-# Install the GNOME desktop environment
-RUN tasksel install ubuntu-desktop --no-install-recommends
+# Install noVNC
+RUN apt-get update && apt-get install -y novnc
 
-# Set timezone to Asia
-RUN ln -snf /usr/share/zoneinfo/Asia/Kolkata /etc/localtime
-
-# Install noVNC and the associated dependencies
-RUN apt install -y novnc x11vnc supervisor
+# Install x11vnc
+RUN apt-get update && apt-get install -y x11vnc
 
 # Configure noVNC
-RUN echo -e "novnc --listen 6080 --vnc localhost:5901 --password ABC123" > /etc/novnc.conf
+RUN sed -i 's/#listening_port = 6080/listening_port = 6901/g' /etc/novnc/default.conf
 
-# Run noVNC at startup
-RUN sed -i '/exit 0/d' /etc/rc.local
-RUN echo "/usr/bin/supervisord -n -c /etc/novnc.conf" >> /etc/rc.local
+# Enable and start x11vnc
+RUN systemctl enable x11vnc && systemctl start x11vnc
 
 # Start noVNC
-CMD ["/usr/bin/supervisord", "-n", "-c", "/etc/novnc.conf"]
+RUN systemctl enable novnc && systemctl start novnc
+
+# Run xfce4
+RUN startxfce4
+
+# Expose port 80 for noVNC
+EXPOSE 80
+
+# Keep container running
+CMD sleep infinity
