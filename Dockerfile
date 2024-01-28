@@ -1,40 +1,36 @@
-FROM ubuntu:22.04
-LABEL maintainer="Your Name <your.name@example.com>"
+# Create a new Dockerfile
+FROM ubuntu:20.04
 
-# Install GNOME desktop environment
-RUN apt-get update && \
-    apt-get install -y \
-    gnome-session \
-    gnome-terminal \
-    gnome-panel \
-    gnome-settings-daemon \
-    gnome-backgrounds \
-    gnome-screenshot \
-    gnome-system-monitor \
-    gnome-schedule \
-    gnome-weather \
-    gnome-clocks \
-    gnome-nautilus \
-    gnome-disk-utility \
-    gnome-font-viewer \
-    gnome-calculator \
-    gnome-text-editor \
-    gnome-maps \
-    gnome-contacts \
-    gnome-software
+# Update the package manager
+RUN apt update && apt upgrade -y
 
-# Install NoVNC
-RUN apt-get update && \
-    apt-get install -y \
-    novnc \
-    websockify
+# Install Gnome and noVNC
+RUN apt install -y gnome-session gnome-shell gnome-terminal noVNC
 
-# Configure NoVNC
-RUN sed -i 's/#websockify/websockify/' /etc/novnc/default.conf
-RUN sed -i 's/#allow/allow/' /etc/novnc/default.conf
+# Configure noVNC
+RUN sed -i 's/ENABLED=0/ENABLED=1/' /etc/default/novnc
+RUN sed -i 's/websockify -D --web /websockify -D --web=81:/' /etc/novnc/default.conf
 
-# Expose ports
-EXPOSE 6080
+# Start noVNC
+RUN service novnc start
 
-# Start NoVNC
-CMD /usr/bin/supervisord -n -c /etc/supervisor/supervisord.conf
+# Add the user
+RUN useradd -m user
+
+# Set the user's password
+RUN echo 'user:user' | chpasswd
+
+# Copy the SSH keys
+COPY authorized_keys /home/user/.ssh/authorized_keys
+
+# Set the default shell
+RUN usermod -s /bin/bash user
+
+# Allow the user to run Docker commands without sudo
+RUN usermod -aG docker user
+
+# Expose ports 22 (SSH), 6080 (VNC) and 81 (noVNC)
+EXPOSE 22 6080 81
+
+# Start the SSH daemon
+CMD ["/usr/sbin/sshd", "-D"]
