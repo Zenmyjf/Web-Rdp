@@ -1,36 +1,37 @@
-# Create a new Dockerfile
-FROM ubuntu:20.04
+# Update and install dependencies
+RUN apt-get update && apt-get install -y \
+    apt-transport-https \
+    ca-certificates \
+    curl \
+    gnupg-agent \
+    software-properties-common
 
-# Update the package manager
-RUN apt update && apt upgrade -y
+# Add Docker's official GPG key
+RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
 
-# Install Gnome and noVNC
-RUN apt install -y gnome-session gnome-shell gnome-terminal noVNC
+# Add the Docker repository
+RUN add-apt-repository \
+   "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
+   $(lsb_release -cs) \
+   stable"
 
-# Configure noVNC
-RUN sed -i 's/ENABLED=0/ENABLED=1/' /etc/default/novnc
-RUN sed -i 's/websockify -D --web /websockify -D --web=81:/' /etc/novnc/default.conf
+# Update and install Docker
+RUN apt-get update && apt-get install -y docker-ce docker-ce-cli containerd.io
 
-# Start noVNC
-RUN service novnc start
+# Install xorg and gnome
+RUN apt update && apt install -y x11vnc xorg gnome-core
 
-# Add the user
-RUN useradd -m user
+# Install noVNC
+RUN mkdir -p /usr/share/novnc && \
+    cd /usr/share/novnc && \
+    wget -O /tmp/noVNC-latest.tar.gz https://github.com/novnc/noVNC/archive/refs/heads/master.tar.gz && \
+    tar -xvf /tmp/noVNC-latest.tar.gz && \
+    rm /tmp/noVNC-latest.tar.gz
 
-# Set the user's password
-RUN echo 'user:user' | chpasswd
+# Copy config files
+COPY xstartup /root/.xstartup
+COPY novnc.html /usr/share/novnc/index.html
 
-# Copy the SSH keys
-COPY authorized_keys /home/user/.ssh/authorized_keys
-
-# Set the default shell
-RUN usermod -s /bin/bash user
-
-# Allow the user to run Docker commands without sudo
-RUN usermod -aG docker user
-
-# Expose ports 22 (SSH), 6080 (VNC) and 81 (noVNC)
-EXPOSE 22 6080 81
-
-# Start the SSH daemon
-CMD ["/usr/sbin/sshd", "-D"]
+# Start xorg and vncserver
+CMD xinit -- /usr/bin/vncserver -geometry 1366x768 :1; \
+    /usr/share/novnc/utils/launch.sh --vnc localhost:5901 --listen 6080
