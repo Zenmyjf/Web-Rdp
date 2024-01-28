@@ -1,37 +1,25 @@
-# Update and install dependencies
-RUN apt-get update && apt-get install -y \
-    apt-transport-https \
-    ca-certificates \
-    curl \
-    gnupg-agent \
-    software-properties-common
+# Create a new Dockerfile for Ubuntu GNOME with noVNC
 
-# Add Docker's official GPG key
-RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+# Use the official Ubuntu 20.04 GNOME image as the base image
+FROM ubuntu:20.04
 
-# Add the Docker repository
-RUN add-apt-repository \
-   "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
-   $(lsb_release -cs) \
-   stable"
+# Update the package repository cache
+RUN apt update
 
-# Update and install Docker
-RUN apt-get update && apt-get install -y docker-ce docker-ce-cli containerd.io
-
-# Install xorg and gnome
-RUN apt update && apt install -y x11vnc xorg gnome-core
+# Install the GNOME desktop environment
+RUN apt install -y gnome-session gnome-shell
 
 # Install noVNC
-RUN mkdir -p /usr/share/novnc && \
-    cd /usr/share/novnc && \
-    wget -O /tmp/noVNC-latest.tar.gz https://github.com/novnc/noVNC/archive/refs/heads/master.tar.gz && \
-    tar -xvf /tmp/noVNC-latest.tar.gz && \
-    rm /tmp/noVNC-latest.tar.gz
+RUN apt install -y novnc
 
-# Copy config files
-COPY xstartup /root/.xstartup
-COPY novnc.html /usr/share/novnc/index.html
+# Configure noVNC
+RUN ln -s /usr/share/novnc /var/www/html
 
-# Start xorg and vncserver
-CMD xinit -- /usr/bin/vncserver -geometry 1366x768 :1; \
-    /usr/share/novnc/utils/launch.sh --vnc localhost:5901 --listen 6080
+# Create a user for the VNC session
+RUN useradd -ms /bin/bash vncuser && echo "vncuser:password" | chpasswd
+
+# Expose port 8080 for noVNC
+EXPOSE 8080
+
+# Start the VNC server
+CMD ["/usr/bin/x11vnc", "-display", ":0", "-auth", "guess", "-rfbport", "5900", "-forever", "-shared"]
