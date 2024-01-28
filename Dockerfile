@@ -1,22 +1,45 @@
-FROM ubuntu:latest
+# vim: set ft=dockerfile:
+FROM yen3/binfmt-register:0.1 as builder
 
-RUN apt update && DEBIAN_FRONTEND=noninteractive apt install -y ubuntu-desktop
+FROM arm64v8/ubuntu:16.04
+MAINTAINER yen3 <yen3@gmail.com>
 
-RUN rm /run/reboot-required*
+ENV DEBIAN_FRONTEND noninteractive
+ENV HOME /root
 
-RUN useradd -m testuser -p $(openssl passwd 1234)
-RUN usermod -aG sudo testuser
+# Add qemu binary to run the inmage in x86-64 platform
+# The binary is unused in macOS docker
+COPY --from=builder /qemu/qemu-aarch64-static /usr/local/bin/qemu-aarch64-static
 
-RUN apt install -y xrdp
-RUN adduser xrdp ssl-cert
+RUN apt-get update \
+    && apt-get install -y --force-yes --no-install-recommends supervisor \
+        openssh-server pwgen sudo vim-tiny \
+        net-tools \
+        lxde x11vnc x11vnc-data xvfb \
+        gtk2-engines-murrine ttf-ubuntu-font-family \
+        libreoffice firefox \
+        fonts-wqy-microhei \
+        language-pack-zh-hant language-pack-gnome-zh-hant firefox-locale-zh-hant libreoffice-l10n-zh-tw \
+        nginx \
+        python-pip python-dev build-essential \
+    && apt-get autoclean \
+    && apt-get autoremove \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN sed -i '3 a echo "\
-export GNOME_SHELL_SESSION_MODE=ubuntu\\n\
-export XDG_SESSION_TYPE=x11\\n\
-export XDG_CURRENT_DESKTOP=ubuntu:GNOME\\n\
-export XDG_CONFIG_DIRS=/etc/xdg/xdg-ubuntu:/etc/xdg\\n\
-" > ~/.xsessionrc' /etc/xrdp/startwm.sh
+ADD web /web/
+ADD get-pip.py /get-pip.py
+RUN python get-pip.py
+RUN /usr/local/bin/pip install -r /web/requirements.txt
 
-EXPOSE 3389
+ADD noVNC /noVNC/
+ADD nginx.conf /etc/nginx/sites-enabled/default
+ADD startup.sh /
+ADD supervisord.conf /etc/supervisor/conf.d/
+ADD doro-lxde-wallpapers /usr/share/doro-lxde-wallpapers/
 
-CMD service dbus start; /usr/lib/systemd/systemd-logind & service xrdp start ; bash
+# Remove the binary. It's unused in the final result
+RUN rm -f /usr/local/bin/qemu-aarch64-static
+
+EXPOSE 6080
+WORKDIR /root
+ENTRYPOINT ["/startup.sh"]
