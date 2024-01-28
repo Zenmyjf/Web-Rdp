@@ -25,4 +25,4 @@ RUN chmod 600 ~/.vnc/passwd
 ENV USER=root
 
 # Start the VNC server with GNOME and noVNC
-CMD vncserver :1 -geometry 1280x800 -depth 24 -extension RANDR && websockify --web=/usr/share/novnc/ 6080 localhost:5901
+CMD vncserver :1 -geometry 1280x800 -depth 24 -extension RANDR -fp /usr/share/fonts/X11/misc && websockify --web=/usr/share/novnc/ 6080 localhost:5901
