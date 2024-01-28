@@ -16,7 +16,7 @@ RUN apt-get update && apt-get install -y \
     firefox
 
 # Set up a user
-RUN useradd -m render
+RUN useradd --system -U -u 1000 -m render
 RUN echo "render:render" | chpasswd
 RUN usermod --shell /bin/bash render
 RUN usermod -aG sudo render
