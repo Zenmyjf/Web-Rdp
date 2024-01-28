@@ -1,18 +1,15 @@
-# Create a new Render service
-render service create \
-  --service-name my-desktop \
-  --image docker.io/ubuntu:22.04 \
-  --env VNC_RESOLUTION=1920x1080 \
-  --env VNC_PASSWORD=my-password
-
-# Wait for the service to deploy
-render service wait \
-  --service-name my-desktop
-
-# Get the service URL
-service_url=$(render service get \
-  --service-name my-desktop \
-  --field urls.novnc)
-
-# Connect to the service using NoVNC
-open $service_url
+# render.yaml
+services:
+  - name: ubuntu-gnome-desktop
+    environment:
+      - key: DEBIAN_FRONTEND
+        value: noninteractive
+    buildCommand: |
+      sudo apt-get update
+      sudo apt-get install -y ubuntu-gnome-desktop
+      sudo apt-get install -y gdm3
+      sudo systemctl set-default graphical.target
+      sudo apt-get install -y novnc websockify
+    startCommand: |
+      sudo systemctl start gdm3
+      websockify 5901 localhost:5900 --web /usr/share/novnc/
