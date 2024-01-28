@@ -1,15 +1,11 @@
-# render.yaml
-services:
-  - name: ubuntu-gnome-desktop
-    environment:
-      - key: DEBIAN_FRONTEND
-        value: noninteractive
-    buildCommand: |
-      sudo apt-get update
-      sudo apt-get install -y ubuntu-gnome-desktop
-      sudo apt-get install -y gdm3
-      sudo systemctl set-default graphical.target
-      sudo apt-get install -y novnc websockify
-    startCommand: |
-      sudo systemctl start gdm3
-      websockify 5901 localhost:5900 --web /usr/share/novnc/
+# Use the base image
+FROM yuquant/ubuntu-unity-novnc
+ 
+# Expose the port on which NoVNC runs (80 inside the container)
+EXPOSE 80
+ 
+# Set the environment variable for screen resolution
+ENV RESOLUTION 1707x1067
+ 
+# Start the command to run NoVNC
+CMD ["supervisord", "-c", "/etc/supervisor/supervisord.conf"]
