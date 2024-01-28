@@ -1,25 +1,24 @@
-# Create a new Dockerfile for Ubuntu GNOME with noVNC
-
-# Use the official Ubuntu 20.04 GNOME image as the base image
+# Set up the base image and install the GNOME desktop environment
 FROM ubuntu:20.04
 
-# Update the package repository cache
-RUN apt update
+# Update the package list and install necessary packages
+RUN apt update -y && apt install -y tasksel
 
 # Install the GNOME desktop environment
-RUN apt install -y gnome-session gnome-shell
+RUN tasksel install ubuntu-desktop --no-install-recommends
 
-# Install noVNC
-RUN apt install -y novnc
+# Set timezone to Asia
+RUN ln -snf /usr/share/zoneinfo/Asia/Kolkata /etc/localtime
+
+# Install noVNC and the associated dependencies
+RUN apt install -y novnc x11vnc supervisor
 
 # Configure noVNC
-RUN ln -s /usr/share/novnc /var/www/html
+RUN echo -e "novnc --listen 6080 --vnc localhost:5901 --password ABC123" > /etc/novnc.conf
 
-# Create a user for the VNC session
-RUN useradd -ms /bin/bash vncuser && echo "vncuser:password" | chpasswd
+# Run noVNC at startup
+RUN sed -i '/exit 0/d' /etc/rc.local
+RUN echo "/usr/bin/supervisord -n -c /etc/novnc.conf" >> /etc/rc.local
 
-# Expose port 8080 for noVNC
-EXPOSE 8080
-
-# Start the VNC server
-CMD ["/usr/bin/x11vnc", "-display", ":0", "-auth", "guess", "-rfbport", "5900", "-forever", "-shared"]
+# Start noVNC
+CMD ["/usr/bin/supervisord", "-n", "-c", "/etc/novnc.conf"]
