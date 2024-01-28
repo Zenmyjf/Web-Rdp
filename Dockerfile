@@ -1,28 +1,22 @@
-# Use the official Ubuntu as a base image
+# Use an official Ubuntu image
 FROM ubuntu:latest
 
-# Set the keyboard origin environment variable to avoid interactive prompts during installation
+# Set the keyboard layout (replace "us" with your desired layout)
 ENV DEBIAN_FRONTEND=noninteractive
-ENV DEBCONF_NONINTERACTIVE_SEEN=true
-ENV KEYBOARD_ORIGIN=us
+RUN apt-get update && apt-get install -y keyboard-configuration
+RUN echo "keyboard-configuration keyboard-configuration/layout select us" | debconf-set-selections
+RUN dpkg-reconfigure -f noninteractive keyboard-configuration
 
-# Update packages and install necessary components
-RUN apt-get update && apt-get install -y \
-    sudo \
-    xfce4 \
-    xfce4-goodies \
-    x11vnc \
-    novnc \
-    firefox
+# Install necessary packages
+RUN apt-get install -y xfce4 xfce4-goodies tightvncserver novnc websockify
 
-# Set up a user
-RUN useradd --system -U -u 1000 -m render
-RUN echo "render:render" | chpasswd
-RUN usermod --shell /bin/bash render
-RUN usermod -aG sudo render
+# Expose ports for VNC and noVNC
+EXPOSE 5901
+EXPOSE 6080
 
-# Expose the VNC port
-EXPOSE 5900
+# Set up VNC and noVNC
+RUN mkdir -p ~/.vnc && echo "password" | vncpasswd -f > ~/.vnc/passwd
+RUN chmod 600 ~/.vnc/passwd
 
-# Start the VNC server and the web-based noVNC server
-CMD bash -c "echo 'render:render' | chpasswd && /usr/bin/sudo -u render -i /usr/bin/startxfce4 & sleep 2 && x11vnc -display :99 -rfbauth /home/render/.vnc/passwd -forever && /usr/bin/sudo -u render -i /usr/bin/websockify -D --web=/usr/share/novnc/ --cert=/etc/ssl/novnc.pem 6080 localhost:5900"
+# Start the VNC server with XFCE and noVNC
+CMD vncserver :1 -geometry 1280x800 -depth 24 && websockify -D --web=/usr/share/novnc/ --token-plugin TokenFile :6080 localhost:5901
