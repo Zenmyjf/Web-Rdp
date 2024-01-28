@@ -22,4 +22,4 @@ RUN chmod 600 ~/.vnc/passwd
 ENV USER=root
 
 # Start the VNC server with XFCE
-CMD vncserver :1 -geometry 1280x800 -depth 24 && websockify -D --web=/usr/share/novnc/ 6080
+CMD vncserver :1 -geometry 1280x800 -depth 24 && websockify --web=/usr/share/novnc/ 6080 localhost:5901
