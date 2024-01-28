@@ -1,30 +1,32 @@
-# Use the Ubuntu 20.04 base image
-FROM ubuntu:20.04
-
-# Set the environment variable to avoid interactive questions when installing packages
-ENV DEBIAN_FRONTEND=noninteractive
-
-# Set the timezone to your preferred value (replace "America/New_York" with your desired timezone)
-RUN ln -fs /usr/share/zoneinfo/America /etc/localtime \
-    && dpkg-reconfigure --frontend noninteractive tzdata \
-    
-# Install required packages (GNOME, VNC, noVNC, etc.)
-RUN apt-get update \
-    && apt-get install -y \
-        gnome-shell \
-        ubuntu-gnome-desktop \
-        tigervnc-standalone-server \
-        novnc \
-        websockify \
-        xfce4-terminal \
-        firefox \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
-# Set up VNC password
-RUN mkdir -p ~/.vnc \
-    && echo "password" | vncpasswd -f > ~/.vnc/passwd \
-    && chmod 0600 ~/.vnc/passwd
-
-# Start the VNC server and noVNC
-CMD vncserver :1 -localhost no -geometry 1366x768 && websockify -D 6080 localhost:5901
+FROM alpine:latest
+RUN apk update
+RUN apk upgrade
+RUN apk --no-cache --update add x11vnc
+RUN apk --no-cache add xvfb xfce4 xfce4-terminal supervisor sudo \
+&& addgroup alpine \
+&& adduser  -G alpine -s /bin/sh -D alpine \
+&& echo "alpine:alpine" | /usr/sbin/chpasswd \
+&& echo "alpine ALL=NOPASSWD: ALL" >> /etc/sudoers \
+&& rm -rf /apk /tmp/* /var/cache/apk/*
+USER alpine
+ENV USER=alpine \
+    DISPLAY=:1 \
+    LANG=en_US.UTF-8 \
+    LANGUAGE=en_US.UTF-8 \
+    HOME=/home/alpine \
+    TERM=xterm \
+    SHELL=/bin/bash \
+    VNC_PASSWD=alpinelinux \
+    VNC_PORT=5900 \
+    VNC_RESOLUTION=1024x768 \
+    VNC_COL_DEPTH=24  \
+    NOVNC_PORT=6080 \
+    NOVNC_HOME=/opt/noVNC
+RUN sudo apk update \
+  && sudo apk add git \
+  && sudo git clone https://github.com/novnc/noVNC /opt/noVNC \
+  && sudo apk add bash
+WORKDIR $HOME
+EXPOSE $VNC_PORT $NOVNC_PORT
+COPY supervisord.conf /etc/supervisord.conf
+CMD ["sudo","/usr/bin/supervisord","-c","/etc/supervisord.conf"]
