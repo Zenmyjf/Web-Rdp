@@ -18,5 +18,8 @@ EXPOSE 6080
 RUN mkdir -p ~/.vnc && echo "password" | vncpasswd -f > ~/.vnc/passwd
 RUN chmod 600 ~/.vnc/passwd
 
+# Set the USER environment variable
+ENV USER=root
+
 # Start the VNC server with XFCE and noVNC
 CMD vncserver :1 -geometry 1280x800 -depth 24 && websockify -D --web=/usr/share/novnc/ --token-plugin TokenFile :6080 localhost:5901
