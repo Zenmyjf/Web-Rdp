@@ -13,7 +13,9 @@ RUN apt-get install -y xfce4 xfce4-goodies tightvncserver novnc websockify chrom
 # Expose ports for VNC, noVNC, AnyDesk
 EXPOSE 5901
 EXPOSE 6080
-EXPOSE 7070 7071 7072 # AnyDesk ports
+EXPOSE 7070
+EXPOSE 7071
+EXPOSE 7072
 
 # Set up VNC and noVNC
 RUN mkdir -p ~/.vnc && echo "password" | vncpasswd -f > ~/.vnc/passwd
