@@ -42,5 +42,5 @@ CMD service dbus start && \
     /usr/lib/systemd/systemd-logind & \
     service xrdp start && \
     /startvnc && \
-    websockify -D --web=/usr/share/novnc/ --token-auth --heartbeat 30 6080 && \
+    websockify -D --web=/usr/share/novnc/ 6080 && \
     bash
