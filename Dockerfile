@@ -7,8 +7,8 @@ RUN apt-get update
 # Install Ubuntu Mate desktop and other dependencies
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y ubuntu-mate-desktop
 
-# Install additional dependencies
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y tightvncserver xfonts-base x11-xserver-utils novnc websockify
+# Install additional dependencies including x11vnc, Firefox
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y tightvncserver xfonts-base x11-xserver-utils novnc websockify x11vnc firefox
 
 # Clean up after installation
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
