@@ -1,38 +1,38 @@
 # Use the official Ubuntu base image
 FROM ubuntu:latest
 
-# Set noninteractive mode
-ENV DEBIAN_FRONTEND=noninteractive
+# Set non-interactive mode during installation
+ARG DEBIAN_FRONTEND=noninteractive
+ENV TZ=America/New_York
 
-# Install required packages
-RUN apt-get update && \
-    apt-get install -y \
-    gnome-shell \
-    ubuntu-gnome-desktop \
+# Set the timezone
+RUN ln -fs /usr/share/zoneinfo/$TZ /etc/localtime && dpkg-reconfigure -f noninteractive tzdata
+
+# Install necessary packages
+RUN apt-get update && apt-get install -y \
+    ubuntu-desktop \
     x11vnc \
     xvfb \
     novnc \
-    fluxbox \
+    dbus-x11 \
     supervisor \
-    net-tools \
-    && apt-get autoclean \
-    && apt-get autoremove \
+    gnome-terminal \
+    && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Set up VNC and noVNC
-RUN mkdir -p ~/.vnc && \
-    x11vnc -storepasswd secret ~/.vnc/passwd && \
-    chmod 600 ~/.vnc/passwd
+# Set up noVNC
+ENV DISPLAY=:1 \
+    VNC_PORT=5901 \
+    NOVNC_PORT=6901
 
-RUN echo "[supervisord]" > /etc/supervisor/conf.d/supervisord.conf && \
-    echo "nodaemon=true" >> /etc/supervisor/conf.d/supervisord.conf && \
-    echo "" >> /etc/supervisor/conf.d/supervisord.conf && \
-    echo "[program:x11vnc]" >> /etc/supervisor/conf.d/supervisord.conf && \
-    echo "command=/usr/bin/x11vnc -forever -usepw -display :0 -shared" >> /etc/supervisor/conf.d/supervisord.conf && \
-    echo "" >> /etc/supervisor/conf.d/supervisord.conf && \
-    echo "[program:web]" >> /etc/supervisor/conf.d/supervisord.conf && \
-    echo "command=/usr/bin/websockify --web /usr/share/novnc/ --wrap-mode=ignore --tcp-only --ssl-only --cert=/etc/ssl/certs/ssl-cert-snakeoil.pem --key=/etc/ssl/private/ssl-cert-snakeoil.key 8080 localhost:5900" >> /etc/supervisor/conf.d/supervisord.conf
+# Set the noVNC password
+ENV VNC_PASSWORD=your_password
 
-EXPOSE 8080
+# Expose ports
+EXPOSE $VNC_PORT $NOVNC_PORT
 
+# Add supervisor configuration
+ADD supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+# Start supervisor
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
