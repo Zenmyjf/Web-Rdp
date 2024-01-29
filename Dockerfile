@@ -6,7 +6,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 ENV TZ=America/New_York
 
 # Set the timezone
-RUN ln -fs /usr/share/zoneinfo/$TZ /etc/localtime && dpkg-reconfigure -f noninteractive tzdata
+RUN ln -fs /usr/share/zoneinfo/America/New_York /etc/localtime && dpkg-reconfigure -f noninteractive tzdata
 
 # Install necessary packages
 RUN apt-get update && apt-get install -y \
