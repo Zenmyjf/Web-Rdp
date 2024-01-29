@@ -8,22 +8,18 @@ RUN echo "keyboard-configuration keyboard-configuration/layout select us" | debc
 RUN dpkg-reconfigure -f noninteractive keyboard-configuration
 
 # Install necessary packages
-RUN apt-get install -y xfce4 xfce4-goodies tightvncserver websockify
+RUN apt-get install -y xfce4 xfce4-goodies tightvncserver novnc websockify
 
 # Expose ports for VNC and noVNC
 EXPOSE 5901
 EXPOSE 6080
 
-# Set up VNC
+# Set up VNC and noVNC
 RUN mkdir -p ~/.vnc && echo "password" | vncpasswd -f > ~/.vnc/passwd
 RUN chmod 600 ~/.vnc/passwd
 
 # Set the USER environment variable
 ENV USER=root
 
-# Create a font path for Xtightvnc
-RUN echo "unset SESSION_MANAGER" > /etc/X11/xinit/xinitrc.d/00-vnc.sh && \
-    echo "unset DBUS_SESSION_BUS_ADDRESS" >> /etc/X11/xinit/xinitrc.d/00-vnc.sh
-
-# Start the VNC server with XFCE and use the static outbound IP address
-CMD vncserver :1 -geometry 1280x800 -depth 24 -localhost no && websockify --web=/usr/share/novnc/ 6080 localhost:5901 && echo "Connect to: <35.160.120.126>:6080"
+# Start the VNC server with XFCE
+CMD vncserver :1 -geometry 1280x800 -depth 24 && websockify --web=/usr/share/novnc/ 6080 localhost:5901
