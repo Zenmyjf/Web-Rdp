@@ -1,25 +1,38 @@
-# Use an official Ubuntu image
+# Use the official Ubuntu base image
 FROM ubuntu:latest
 
-# Set the keyboard layout and timezone
-ENV DEBIAN_FRONTEND=noninteractive
-RUN apt-get update && apt-get install -y tzdata keyboard-configuration
-RUN ln -snf /usr/share/zoneinfo/America/New_York /etc/localtime && echo "America/New_York" > /etc/timezone
-RUN dpkg-reconfigure -f noninteractive tzdata keyboard-configuration
+# Set non-interactive mode during installation
+ARG DEBIAN_FRONTEND=noninteractive
+ENV TZ=America/New_York
 
-# Install full GNOME desktop environment and necessary packages for VNC and noVNC
-RUN apt-get install -y ubuntu-gnome-desktop tightvncserver novnc websockify
+# Set the timezone
+RUN ln -fs /usr/share/zoneinfo/$TZ /etc/localtime && dpkg-reconfigure -f noninteractive tzdata
 
-# Expose ports for VNC and noVNC
-EXPOSE 5901
-EXPOSE 6080
+# Install necessary packages
+RUN apt-get update && apt-get install -y \
+    ubuntu-desktop \
+    x11vnc \
+    xvfb \
+    novnc \
+    dbus-x11 \
+    supervisor \
+    gnome-terminal \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-# Set up VNC
-RUN mkdir -p ~/.vnc && echo "password" | vncpasswd -f > ~/.vnc/passwd
-RUN chmod 600 ~/.vnc/passwd
+# Set up noVNC
+ENV DISPLAY=:1 \
+    VNC_PORT=5901 \
+    NOVNC_PORT=6901
 
-# Set the USER environment variable
-ENV USER=root
+# Set the noVNC password
+ENV VNC_PASSWORD=your_password
 
-# Start the VNC server with GNOME and noVNC
-CMD ["bash", "-c", "vncserver :1 -geometry 1280x800 -depth 24 -extension RANDR -fp /usr/share/fonts/X11/misc && websockify --web=/usr/share/novnc/ 6080 localhost:5901"]
+# Expose ports
+EXPOSE $VNC_PORT $NOVNC_PORT
+
+# Add supervisor configuration
+ADD supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+# Start supervisor
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
