@@ -1,15 +1,17 @@
 # Use the official Ubuntu base image
-FROM ubuntu:20.04
+FROM ubuntu:22.04
 
-# Install necessary dependencies
-RUN apt-get update && \
-    DEBIAN_FRONTEND=noninteractive apt-get install -y \
-    ubuntu-mate-core \
-    ubuntu-mate-desktop \
-    novnc \
-    websockify \
-    x11vnc \
-    firefox
+# Separate the commands to identify the problematic package
+RUN apt-get update
+
+# Install Ubuntu Mate desktop and other dependencies
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y ubuntu-mate-desktop
+
+# Install additional dependencies
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y tightvncserver xfonts-base x11-xserver-utils novnc websockify
+
+# Clean up after installation
+RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Expose ports for noVNC and SSH
 EXPOSE 8080
