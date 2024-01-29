@@ -3,9 +3,11 @@ FROM ubuntu:latest
 
 # Set non-interactive mode during installation
 ARG DEBIAN_FRONTEND=noninteractive
-ENV TZ=America/New_York
 
-# Set the timezone
+# Install tzdata package
+RUN apt-get update && apt-get install -y tzdata
+
+# Set the timezone (replace 'America/New_York' with your desired timezone)
 RUN ln -fs /usr/share/zoneinfo/America/New_York /etc/localtime && dpkg-reconfigure -f noninteractive tzdata
 
 # Install necessary packages
@@ -25,7 +27,7 @@ ENV DISPLAY=:1 \
     VNC_PORT=5901 \
     NOVNC_PORT=6901
 
-# Set the noVNC password
+# Set the noVNC password (replace 'your_password' with your desired password)
 ENV VNC_PASSWORD=your_password
 
 # Expose ports
