@@ -1,28 +1,26 @@
-# Use an official Ubuntu image
-FROM ubuntu:latest
+# Use the official Ubuntu base image
+FROM ubuntu:20.04
 
-# Set the keyboard layout (replace "us" with your desired layout)
-ENV DEBIAN_FRONTEND=noninteractive
-RUN apt-get update && apt-get install -y keyboard-configuration
-RUN echo "keyboard-configuration keyboard-configuration/layout select us" | debconf-set-selections
-RUN dpkg-reconfigure -f noninteractive keyboard-configuration
+# Install necessary dependencies for Ubuntu Mate Desktop and noVNC
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y \
+    ubuntu-mate-desktop \
+    tightvncserver \
+    xfonts-base \
+    x11-xserver-utils \
+    novnc \
+    websockify \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install XFCE, VNC, noVNC dependencies
-RUN apt-get install -y xfce4 xfce4-goodies tightvncserver novnc websockify
+# Set up a VNC password
+RUN mkdir -p ~/.vnc && \
+    echo "password" | vncpasswd -f > ~/.vnc/passwd && \
+    chmod 600 ~/.vnc/passwd
 
-# Install Chromium browser dependencies
-RUN apt-get install -y chromium-browser libnss3-dev libxss1 libasound2 libatk-bridge2.0-0 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgcc1 libgdk-pixbuf2.0-0 libglib2.0-0 libgtk-3-0 libnspr4 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6
-
-# Expose ports for VNC and noVNC
+# Expose VNC and noVNC ports
 EXPOSE 5901
 EXPOSE 6080
 
-# Set up VNC and noVNC
-RUN mkdir -p ~/.vnc && echo "password" | vncpasswd -f > ~/.vnc/passwd
-RUN chmod 600 ~/.vnc/passwd
-
-# Set the USER environment variable
-ENV USER=root
-
-# Start the VNC server with XFCE and Chrome
-CMD vncserver :1 -geometry 1280x800 -depth 24 && websockify --web=/usr/share/novnc/ 6080 localhost:5901 && chromium-browser
+# Start VNC server and noVNC on container startup
+CMD ["bash", "-c", "vncserver :1 -geometry 1280x800 -depth 24 && websockify -D --web=/usr/share/novnc/ --token-fork -- 6080"]
