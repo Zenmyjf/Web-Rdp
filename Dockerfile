@@ -1,40 +1,46 @@
-# Use the official Ubuntu base image
-FROM ubuntu:latest
-
-# Set non-interactive mode during installation
-ARG DEBIAN_FRONTEND=noninteractive
-
-# Install tzdata package
-RUN apt-get update && apt-get install -y tzdata
-
-# Set the timezone (replace 'America/New_York' with your desired timezone)
-RUN ln -fs /usr/share/zoneinfo/America/New_York /etc/localtime && dpkg-reconfigure -f noninteractive tzdata
+# Use the desired base image, e.g., Ubuntu Jammy
+FROM ubuntu:jammy-20230425
 
 # Install necessary packages
-RUN apt-get update && apt-get install -y \
-    ubuntu-desktop \
-    x11vnc \
-    xvfb \
-    novnc \
-    dbus-x11 \
-    supervisor \
-    gnome-terminal \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt update && \
+    DEBIAN_FRONTEND=noninteractive apt install -y ubuntu-mate-desktop locales sudo xrdp tigervnc-standalone-server novnc websockify
 
-# Set up noVNC
-ENV DISPLAY=:1 \
-    VNC_PORT=5901 \
-    NOVNC_PORT=6901
+# Add a user and set up desktop environment
+ARG USER=testuser
+ARG PASS=1234
+RUN useradd -m $USER -p $(openssl passwd $PASS) && \
+    usermod -aG sudo $USER && \
+    chsh -s /bin/bash $USER
 
-# Set the noVNC password (replace 'your_password' with your desired password)
-ENV VNC_PASSWORD=your_password
+RUN echo "#!/bin/sh\n\
+export XDG_SESSION_DESKTOP=mate\n\
+export XDG_SESSION_TYPE=x11\n\
+export XDG_CURRENT_DESKTOP=MATE\n\
+export XDG_CONFIG_DIRS=/etc/xdg/xdg-mate:/etc/xdg\n\
+exec dbus-run-session -- mate-session" > /xstartup && chmod +x /xstartup
+
+# Set up VNC and noVNC
+RUN mkdir /home/$USER/.vnc && \
+    echo $PASS | vncpasswd -f > /home/$USER/.vnc/passwd && \
+    chmod 0600 /home/$USER/.vnc/passwd && \
+    chown -R $USER:$USER /home/$USER/.vnc
+
+# Configure xrdp and VNC startup
+RUN cp -f /xstartup /etc/xrdp/startwm.sh && \
+    cp -f /xstartup /home/$USER/.vnc/xstartup
+
+RUN echo "#!/bin/sh\n\
+sudo -u $USER -g $USER -- vncserver -rfbport 5902 -geometry 1920x1080 -depth 24 -verbose -localhost no -autokill no" > /startvnc && chmod +x /startvnc
 
 # Expose ports
-EXPOSE $VNC_PORT $NOVNC_PORT
+EXPOSE 3389
+EXPOSE 5902
+EXPOSE 6080 8080
 
-# Add supervisor configuration
-ADD supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-
-# Start supervisor
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+# Start services
+CMD service dbus start && \
+    /usr/lib/systemd/systemd-logind & \
+    service xrdp start && \
+    /startvnc && \
+    websockify -D --web=/usr/share/novnc/ --token-auth --heartbeat 30 6080 && \
+    bash
