@@ -1,9 +1,11 @@
 # Use a lightweight base image
 FROM debian:bullseye-slim
 
+# Update package list
+RUN apt-get update
+
 # Install necessary dependencies
-RUN apt-get update && \
-    apt-get install -y \
+RUN apt-get install -y --no-install-recommends \
     firefox \
     xvfb \
     x11vnc \
