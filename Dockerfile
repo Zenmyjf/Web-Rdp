@@ -4,12 +4,11 @@ FROM ubuntu:20.04
 # Set non-interactive mode
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Update and install required packages
-RUN apt-get update && \
-    apt-get install -y xfce4 xfce4-goodies xrdp tigervnc-standalone-server firefox
+# Update packages
+RUN apt-get update
 
-# Install noVNC
-RUN apt-get install -y novnc websockify
+# Install XFCE, xrdp, tigervnc, Firefox, noVNC, and websockify
+RUN apt-get install -y --no-install-recommends xfce4 xfce4-goodies xrdp tigervnc-standalone-server firefox novnc websockify
 
 # Expose the RDP and noVNC ports
 EXPOSE 3389
