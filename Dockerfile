@@ -23,4 +23,4 @@ COPY supervisord.conf /etc/supervisord.conf
 EXPOSE $VNC_PORT $NOVNC_PORT
 
 # Start supervisord to manage the processes
-CMD ["supervisord", "-c", "/etc/supervisord.conf"]
+CMD ["supervisord", "--nodaemon", "--configuration", "/etc/supervisord.conf"]
