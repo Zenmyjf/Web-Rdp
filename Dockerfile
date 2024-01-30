@@ -1,27 +1,38 @@
+# Use a minimal Linux distribution as the base image
+FROM debian:buster-slim
 
-# Use a lightweight Linux distribution as the base image
-FROM alpine:latest
+# Install necessary tools and libraries
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        xvfb \
+        fluxbox \
+        x11vnc \
+        novnc \
+        websockify \
+        wget \
+        bzip2 \
+        ca-certificates \
+        procps \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install necessary packages
-RUN apk update && apk add --no-cache \
-    x11vnc \
-    xvfb \
-    fluxbox \
-    wget \
-    openbox \
-    ttf-freefont \
-    supervisor
+# Install a lightweight web browser (Midori in this example)
+RUN apt-get update \
+    && apt-get install -y midori \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install the internet browser (e.g. Firefox)
-RUN apk add --no-cache firefox-esr
+# Download and unpack noVNC
+WORKDIR /usr/share
+RUN wget -O noVNC.tar.gz https://github.com/novnc/noVNC/archive/v1.2.0.tar.gz \
+    && tar xzf noVNC.tar.gz \
+    && rm noVNC.tar.gz \
+    && mv noVNC-* novnc
 
-# Install noVNC
-RUN wget -P /tmp https://github.com/novnc/noVNC/archive/v1.2.0.tar.gz && \
-    tar -xzf /tmp/v1.2.0.tar.gz -C /opt && \
-    mv /opt/noVNC-1.2.0 /opt/novnc
+# Set up the startup script for Xvfb, Fluxbox, noVNC, and the web browser
+COPY start.sh /usr/share/novnc/start.sh
+RUN chmod +x /usr/share/novnc/start.sh
 
-# Expose the VNC port
-EXPOSE 5900
+# Expose the default noVNC port
+EXPOSE 6080
 
-# Set the entry point and start command
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
+# Set the startup command to initiate noVNC and the web browser
+CMD ["/usr/share/novnc/start.sh"]
