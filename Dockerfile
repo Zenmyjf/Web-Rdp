@@ -1,31 +1,26 @@
-# Use an official Firefox image
-FROM selenium/standalone-firefox:latest
-
-# Expose noVNC port
-EXPOSE 6080
-
-# Set up noVNC and start script
-USER root
-WORKDIR /opt
+# Use a lightweight Linux distribution as the base image
+FROM alpine:latest
 
 # Install necessary packages
-RUN sudo apt-get update && \
-    sudo apt-get install -y git python3-pip && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+RUN apk --no-cache add \
+    chromium \
+    xvfb \
+    fluxbox \
+    supervisor \
+    ttf-freefont \
+    x11vnc \
+    novnc
 
-# Clone noVNC and websockify
-RUN git clone --depth 1 https://github.com/novnc/noVNC.git && \
-    git clone --depth 1 https://github.com/novnc/websockify.git
+# Set up the display environment
+ENV DISPLAY=:1 \
+    VNC_PORT=5901 \
+    NOVNC_PORT=8080
 
-# Install numpy using pip
-RUN python3 -m pip install numpy
+# Set up supervisor to manage processes
+COPY supervisord.conf /etc/supervisord.conf
 
-# Create start script
-RUN echo '#!/bin/bash\n/opt/websockify/run 6080 localhost:5900 &\n/opt/noVNC/utils/launch.sh --vnc localhost:5900 --listen 8080\nsleep infinity' > start.sh && \
-    chmod +x start.sh
+# Expose ports for VNC and noVNC
+EXPOSE $VNC_PORT $NOVNC_PORT
 
-# Expose noVNC port
-EXPOSE 8080
-
-CMD ["/bin/bash", "/opt/start.sh"]
+# Start supervisord to manage the processes
+CMD ["supervisord", "-c", "/etc/supervisord.conf"]
