@@ -1,23 +1,25 @@
+# Use a lightweight base image
+FROM alpine:latest
 
-# Use a minimal base image
-FROM ubuntu:20.04
-
-# Set the keyboard origin environment variable to avoid interactive prompts during installation
-ENV DEBIAN_FRONTEND=noninteractive
-ENV DEBCONF_NONINTERACTIVE_SEEN=true
-ENV KEYBOARD_ORIGIN=us
-
-# Update packages and install necessary components including noVNC and a lightweight browser
-RUN apt-get update && apt-get install -y \
-    --no-install-recommends \
+# Install necessary packages
+RUN apk add --no-cache \
+    chromium \
+    xvfb \
     x11vnc \
-    novnc \
-    fluxbox \
-    firefox-esr \
-    && apt-get clean
+    ttf-freefont
 
-# Expose the VNC port
-EXPOSE 6080
+# Set environment variables
+ENV DISPLAY=:1 \
+    SCREEN_WIDTH=1366 \
+    SCREEN_HEIGHT=768 \
+    SCREEN_DEPTH=24 \
+    HOME=/tmp
 
-# Start noVNC with a lightweight window manager and browser
-CMD bash -c "Xvfb :1 -screen 0 1024x768x16 & export DISPLAY=:1 && fluxbox & x11vnc -display :1 -forever & /usr/share/novnc/utils/launch.sh --listen 6080 --vnc localhost:5900 & wait $!"
+# Set up virtual frame buffer
+RUN Xvfb $DISPLAY -screen 0 $SCREEN_WIDTHx$SCREEN_HEIGHTx$SCREEN_DEPTH &
+
+# Start chromium with no GPU support
+CMD ["chromium-browser", "--no-sandbox", "--disable-gpu", "--disable-software-rasterizer", "--disable-dev-shm-usage", "--disable-setuid-sandbox", "--user-data-dir=/tmp", "--no-first-run", "--start-maximized", "--disable-popup-blocking", "--disable-infobars", "--disable-extensions", "--disable-sync", "--disable-default-apps", "--disable-translate", "--disable-background-networking", "--safebrowsing-disable-auto-update", "--disable-client-side-phishing-detection", "--no-pings", "--headless", "--disable-gpu", "--remote-debugging-address=0.0.0.0", "--remote-debugging-port=9222"]
+
+# Expose noVNC port
+EXPOSE 8080
