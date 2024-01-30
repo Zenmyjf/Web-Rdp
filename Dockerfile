@@ -1,22 +1,18 @@
-FROM render/no-vnc:latest
+# Use an official Chrome image
+FROM selenium/standalone-chrome:latest
 
-# Install Chrome browser
-RUN apt-get update && apt-get install -y chromium-browser
+# Expose noVNC port
+EXPOSE 6080
 
-# Copy noVNC dependencies
-COPY ./noVNC /usr/share/novnc
+# Set up noVNC and start script
+USER root
+WORKDIR /opt
+RUN git clone https://github.com/novnc/noVNC.git && \
+    git clone https://github.com/novnc/websockify.git && \
+    echo '#!/bin/bash\n/opt/websockify/run 6080 localhost:5900 &\n/opt/noVNC/utils/launch.sh --vnc localhost:5900 --listen 8080\ntail -f /dev/null' > start.sh && \
+    chmod +x start.sh
 
-# Configure noVNC
-RUN ln -s /usr/share/novnc /var/www/html/vnc
-RUN ln -s /var/run/novnc /tmp
-RUN chown www-data:www-data /tmp/websockify0.log
+# Expose noVNC port
+EXPOSE 8080
 
-# Expose port 80 for HTTP traffic and port 6080 for WebSocket traffic
-RUN sed -i -- 's/# listen = 8080/# listen = 6080/' /usr/share/novnc/utils/launch.sh
-RUN sed -i -- 's/# port = 8080/# port = 80/' /usr/share/novnc/utils/launch.sh
-
-# Run noVNC in the background
-RUN sh -c 'cd /usr/share/novnc && sudo ./utils/launch.sh --vnc localhost:5900 > /var/log/novnc.log 2>&1 &'
-
-# Start the Chromium browser
-CMD ["chromium-browser", "--remote-debugging-port=9222", "--no-sandbox"]
+CMD ["/bin/bash", "/opt/start.sh"]
