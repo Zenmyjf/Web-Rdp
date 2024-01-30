@@ -15,7 +15,7 @@ EXPOSE 3389
 EXPOSE 6080
 
 # Set up entry point
-ENTRYPOINT ["bash", "-c", "service xrdp start && websockify -D --web=/usr/share/novnc/ --token-plugin=TokenFile --token-source=/dev/urandom 6080 localhost:3389"]
+CMD ["bash", "-c", "service xrdp start && websockify -D 6080 localhost:3389"]
 
 # CMD to keep the container running
 CMD ["bash"]
