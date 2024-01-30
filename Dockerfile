@@ -1,12 +1,29 @@
+# Use a lightweight base image
+FROM alpine:latest
 
-# Use a base image with a minimal Linux distribution and Xfce desktop environment
-FROM dorowu/ubuntu-desktop-lxde-vnc:bionic
+# Install necessary packages
+RUN apk --update --no-cache add \
+    tigervnc-server \
+    fluxbox \
+    supervisor \
+    xvfb \
+    xterm \
+    firefox
 
-# Install a web browser
-RUN apt-get update && apt-get install -y firefox
+# Expose port for noVNC
+EXPOSE 8080
 
-# Expose the default noVNC port
-EXPOSE 6080
+# Set up noVNC
+RUN wget -qO- https://github.com/novnc/noVNC/archive/v1.2.0.tar.gz | tar xz --strip 1 -C /usr/share/novnc
 
-# Set the startup command to run noVNC and the web browser
-CMD ["--wait", "99999", "--scale", "1280x720", "--quality", "9", "--", "firefox"]
+# Configure noVNC
+RUN wget -qO- https://raw.githubusercontent.com/novnc/noVNC/v1.2.0/vnc.html > /usr/share/novnc/index.html
+
+# Create a non-root user
+RUN adduser -D user
+
+# Set up supervisor to manage processes
+RUN echo -e "[supervisord]\nnodaemon=true\n[program:xvfb]\ncommand=/usr/bin/Xvfb :1 -screen 0 1024x768x16\n[program:x11vnc]\ncommand=/usr/bin/x11vnc -display :1 -nopw -listen localhost -xkb\n[program:novnc]\ncommand=/usr/share/novnc/utils/launch.sh --vnc localhost:5900" > /etc/supervisord.conf
+
+# Start supervisor
+CMD ["supervisord", "--nodaemon", "--configuration", "/etc/supervisord.conf"]
