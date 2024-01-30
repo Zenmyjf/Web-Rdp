@@ -1,25 +1,27 @@
-# Use a lightweight base image
+
+# Use a lightweight Linux distribution as the base image
 FROM alpine:latest
 
 # Install necessary packages
-RUN apk add --no-cache \
-    chromium \
-    xvfb \
+RUN apk update && apk add --no-cache \
     x11vnc \
-    ttf-freefont
+    xvfb \
+    fluxbox \
+    wget \
+    openbox \
+    ttf-freefont \
+    supervisor
 
-# Set environment variables
-ENV DISPLAY=:1 \
-    SCREEN_WIDTH=1366 \
-    SCREEN_HEIGHT=768 \
-    SCREEN_DEPTH=24 \
-    HOME=/tmp
+# Install the internet browser (e.g. Firefox)
+RUN apk add --no-cache firefox-esr
 
-# Set up virtual frame buffer
-RUN Xvfb $DISPLAY -screen 0 $SCREEN_WIDTHx$SCREEN_HEIGHTx$SCREEN_DEPTH &
+# Install noVNC
+RUN wget -P /tmp https://github.com/novnc/noVNC/archive/v1.2.0.tar.gz && \
+    tar -xzf /tmp/v1.2.0.tar.gz -C /opt && \
+    mv /opt/noVNC-1.2.0 /opt/novnc
 
-# Start chromium with no GPU support
-CMD ["chromium-browser", "--no-sandbox", "--disable-gpu", "--disable-software-rasterizer", "--disable-dev-shm-usage", "--disable-setuid-sandbox", "--user-data-dir=/tmp", "--no-first-run", "--start-maximized", "--disable-popup-blocking", "--disable-infobars", "--disable-extensions", "--disable-sync", "--disable-default-apps", "--disable-translate", "--disable-background-networking", "--safebrowsing-disable-auto-update", "--disable-client-side-phishing-detection", "--no-pings", "--headless", "--disable-gpu", "--remote-debugging-address=0.0.0.0", "--remote-debugging-port=9222"]
+# Expose the VNC port
+EXPOSE 5900
 
-# Expose noVNC port
-EXPOSE 8080
+# Set the entry point and start command
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
