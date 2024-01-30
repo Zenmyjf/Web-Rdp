@@ -4,27 +4,35 @@ FROM debian:bullseye-slim
 # Install necessary dependencies
 RUN apt-get update && \
     apt-get install -y \
+    firefox \
     xvfb \
-    fluxbox \
     x11vnc \
-    wget \
-    bzip2 \
+    fluxbox \
     && rm -rf /var/lib/apt/lists/*
 
-# Download and install the browser (e.g., Firefox)
-RUN wget -O /tmp/firefox.tar.bz2 "https://download.mozilla.org/?product=firefox-latest-ssl&os=linux64" && \
-    tar -xjf /tmp/firefox.tar.bz2 -C /opt/ && \
-    ln -s /opt/firefox/firefox /usr/bin/firefox && \
-    rm /tmp/firefox.tar.bz2
+# Set up a minimalistic Fluxbox configuration
+RUN mkdir -p /root/.fluxbox
+RUN echo "session.screen0.rootCommand: fbsetbg -solid \"#2E2E2E\"" >> /root/.fluxbox/init
+RUN echo "session.screen0.toolbar.visible: false" >> /root/.fluxbox/init
+RUN echo "session.screen0.workspaceNames: 1" >> /root/.fluxbox/init
+RUN echo "session.screen0.workspaces: 1" >> /root/.fluxbox/init
+RUN echo "session.screen0.toolbar.slit.placement: ScreenRight" >> /root/.fluxbox/init
+RUN echo "session.screen0.toolbar.slit.autoHide: true" >> /root/.fluxbox/init
+RUN echo "session.screen0.toolbar.slit.maxOver: false" >> /root/.fluxbox/init
+RUN echo "session.screen0.toolbar.slit.maxUnder: false" >> /root/.fluxbox/init
+RUN echo "session.screen0.toolbar.slit.onTop: false" >> /root/.fluxbox/init
+RUN echo "session.screen0.toolbar.slitLayer: Normal" >> /root/.fluxbox/init
+RUN echo "session.screen0.tab.placement: TopRight" >> /root/.fluxbox/init
+RUN echo "session.screen0.tab.width: 64" >> /root/.fluxbox/init
+RUN echo "session.screen0.iconbar.mode: Workspace" >> /root/.fluxbox/init
+RUN echo "session.screen0.menuFile: /etc/X11/fluxbox/fluxbox-menu" >> /root/.fluxbox/init
 
 # Set up the entry point script
-ENTRYPOINT ["bash", "-c", "\
-    Xvfb :1 -screen 0 1024x768x16 & \
-    fluxbox & \
-    x11vnc -display :1 -nopw -listen 0.0.0.0 -forever & \
-    firefox --display=:1 & \
-    tail -f /dev/null \
-"]
+COPY entrypoint.sh /usr/bin/entrypoint.sh
+RUN chmod +x /usr/bin/entrypoint.sh
 
 # Expose the VNC port
 EXPOSE 5900
+
+# Specify the command to run on container startup
+CMD ["/usr/bin/entrypoint.sh"]
