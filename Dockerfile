@@ -1,21 +1,32 @@
-# Use the base Ubuntu 20.04 image
-FROM ubuntu:20.04
+# Use a lightweight base image
+FROM alpine:latest
 
-# Set non-interactive mode
-ENV DEBIAN_FRONTEND=noninteractive
+# Install necessary dependencies
+RUN apk add --no-cache \
+    chromium \
+    xvfb \
+    dbus \
+    ttf-freefont \
+    fluxbox \
+    supervisor \
+    git \
+    python3 \
+    py3-numpy \
+    py3-pillow \
+    py3-lxml \
+    py3-psutil \
+    py3-websocket-client
 
-# Update packages
-RUN apt-get update
+# Install noVNC
+WORKDIR /opt
+RUN git clone https://github.com/novnc/noVNC.git && \
+    git clone https://github.com/novnc/websockify.git
 
-# Install XFCE, xrdp, tigervnc, Firefox, noVNC, and websockify
-RUN apt-get install -y --no-install-recommends xfce4 xfce4-goodies xrdp tigervnc-standalone-server firefox novnc websockify
+# Set up a supervisor to manage processes
+COPY supervisord.conf /etc/supervisord.conf
 
-# Expose the RDP and noVNC ports
-EXPOSE 3389
-EXPOSE 6080
+# Expose port for noVNC
+EXPOSE 8080
 
-# Set up entry point
-CMD ["bash", "-c", "service xrdp start && websockify -D 6080 localhost:3389"]
-
-# CMD to keep the container running
-CMD ["bash"]
+# Start the supervisor
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
