@@ -1,5 +1,5 @@
-# Use an official Chrome image
-FROM selenium/standalone-chrome:latest
+# Use an official Firefox image
+FROM selenium/standalone-firefox:latest
 
 # Expose noVNC port
 EXPOSE 6080
