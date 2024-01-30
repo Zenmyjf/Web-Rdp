@@ -1,59 +1,39 @@
-ARG BASE_TAG="develop"
-ARG BASE_IMAGE="core-ubuntu-focal"
-FROM kasmweb/$BASE_IMAGE:$BASE_TAG
+FROM ubuntu:20.04
 
-USER root
+# Install dependencies
+RUN apt-get update && \
+    apt-get -y install xfce4 xfce4-goodies xrdp tigervnc-standalone-server
 
-ENV HOME /home/kasm-default-profile
-ENV STARTUPDIR /dockerstartup
-WORKDIR $HOME
+# Install noVNC
+RUN mkdir /usr/share/novnc && \
+    cd /usr/share/novnc && \
+    wget https://github.com/novnc/noVNC/archive/v1.2.0.tar.gz && \
+    tar -xf v1.2.0.tar.gz && \
+    mv noVNC-1.2.0/* . && \
+    rm -rf noVNC-1.2.0 v1.2.0.tar.gz
 
-### Envrionment config
-ENV DEBIAN_FRONTEND=noninteractive \
-    SKIP_CLEAN=true \
-    KASM_RX_HOME=$STARTUPDIR/kasmrx \
-    DONT_PROMPT_WSL_INSTALL="No_Prompt_please" \
-    INST_DIR=$STARTUPDIR/install \
-    INST_SCRIPTS="/ubuntu/install/tools/install_tools_deluxe.sh \
-                  /ubuntu/install/misc/install_tools.sh \
-                  /ubuntu/install/chrome/install_chrome.sh \
-                  /ubuntu/install/chromium/install_chromium.sh \
-                  /ubuntu/install/firefox/install_firefox.sh \
-                  /ubuntu/install/sublime_text/install_sublime_text.sh \
-                  /ubuntu/install/vs_code/install_vs_code.sh \
-                  /ubuntu/install/nextcloud/install_nextcloud.sh \
-                  /ubuntu/install/remmina/install_remmina.sh \
-                  /ubuntu/install/only_office/install_only_office.sh \
-                  /ubuntu/install/signal/install_signal.sh \
-                  /ubuntu/install/gimp/install_gimp.sh \
-                  /ubuntu/install/zoom/install_zoom.sh \
-                  /ubuntu/install/obs/install_obs.sh \
-                  /ubuntu/install/ansible/install_ansible.sh \
-                  /ubuntu/install/terraform/install_terraform.sh \
-                  /ubuntu/install/telegram/install_telegram.sh \
-                  /ubuntu/install/thunderbird/install_thunderbird.sh \
-                  /ubuntu/install/slack/install_slack.sh \
-                  /ubuntu/install/gamepad_utils/install_gamepad_utils.sh \
-                  /ubuntu/install/cleanup/cleanup.sh"
+# Generate a self-signed certificate
+RUN openssl req -x509 -nodes -days 365 -subj "/C=US/ST=California/L=San Francisco/O=Render/CN=localhost" -newkey rsa:2048 -keyout /etc/ssl/private/novnc.key -out /etc/ssl/certs/novnc.crt
 
-# Copy install scripts
-COPY ./src/ $INST_DIR
+# Install Apache and configure it to serve noVNC
+RUN apt-get -y install apache2 && \
+    a2enmod ssl && \
+    a2enmod proxy_http && \
+    a2enmod proxy_wstunnel && \
+    echo 'ServerName localhost' >> /etc/apache2/apache2.conf && \
+    echo '<VirtualHost *:443>' >> /etc/apache2/sites-available/noVNC.conf && \
+    echo '  SSLEngine on' >> /etc/apache2/sites-available/noVNC.conf && \
+    echo '  SSLCertificateFile /etc/ssl/certs/novnc.crt' >> /etc/apache2/sites-available/noVNC.conf && \
+    echo '  SSLCertificateKeyFile /etc/ssl/private/novnc.key' >> /etc/apache2/sites-available/noVNC.conf && \
+    echo '  ProxyPass / /usr/share/novnc/' >> /etc/apache2/sites-available/noVNC.conf && \
+    echo '  ProxyPassReverse / /usr/share/novnc/' >> /etc/apache2/sites-available/noVNC.conf && \
+    echo '  ProxyPass /socket.io /usr/share/novnc/lib/socket.io/' >> /etc/apache2/sites-available/noVNC.conf && \
+    echo '  ProxyPassReverse /socket.io /usr/share/novnc/lib/socket.io/' >> /etc/apache2/sites-available/noVNC.conf && \
+    echo '  <Location /usr/share/novnc/>' >> /etc/apache2/sites-available/noVNC.conf && \
+    echo '    Require all granted' >> /etc/apache2/sites-available/noVNC.conf && \
+    echo '  </Location>' >> /etc/apache2/sites-available/noVNC.conf && \
+    a2ensite noVNC.conf && \
+    systemctl restart apache2
 
-# Run installations
-RUN \
-  for SCRIPT in $INST_SCRIPTS; do \
-    bash ${INST_DIR}${SCRIPT} || exit 1; \
-  done && \
-  $STARTUPDIR/set_user_permission.sh $HOME && \
-  rm -f /etc/X11/xinit/Xclients && \
-  chown 1000:0 $HOME && \
-  mkdir -p /home/kasm-user && \
-  chown -R 1000:0 /home/kasm-user && \
-  rm -Rf ${INST_DIR}
-
-# Userspace Runtime
-ENV HOME /home/kasm-user
-WORKDIR $HOME
-USER 1000
-
-CMD ["--tail-log"]
+# Launch XRDP and noVNC in the background
+CMD ["xrdp", "--nodaemon", "&", "nohup", "vncserver", "-geometry", "1024x768", "-SecurityTypes", "None", "&"]
