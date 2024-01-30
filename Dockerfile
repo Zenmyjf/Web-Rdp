@@ -1,4 +1,8 @@
+# Use the official Ubuntu 20.04 base image
 FROM ubuntu:20.04
+
+# Set non-interactive environment variables
+ENV DEBIAN_FRONTEND=noninteractive
 
 # Install dependencies
 RUN apt-get update && \
