@@ -13,11 +13,7 @@ RUN apt-get update \
         bzip2 \
         ca-certificates \
         procps \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install a lightweight web browser (Midori in this example)
-RUN apt-get update \
-    && apt-get install -y midori \
+        midori \
     && rm -rf /var/lib/apt/lists/*
 
 # Download and unpack noVNC
@@ -27,7 +23,7 @@ RUN wget -O noVNC.tar.gz https://github.com/novnc/noVNC/archive/v1.2.0.tar.gz \
     && rm noVNC.tar.gz \
     && mv noVNC-* novnc
 
-# Set up the startup script for Xvfb, Fluxbox, noVNC, and the web browser
+# Copy the start script into the image
 COPY start.sh /usr/share/novnc/start.sh
 RUN chmod +x /usr/share/novnc/start.sh
 
