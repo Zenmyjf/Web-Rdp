@@ -1,40 +1,15 @@
-# Use a lightweight base image
-FROM debian:bullseye-slim
+# Use a base image that supports systemd, for example, Ubuntu
+FROM ubuntu:20.04
 
-# Update package list
-RUN apt-get update
+# Install necessary packages
+RUN apt-get update && \
+apt-get install -y shellinabox && \
+apt-get install -y systemd && \
+apt-get clean && \
+rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+RUN echo 'root:root' | chpasswd
+# Expose the web-based terminal port
+EXPOSE 4200
 
-# Install necessary dependencies
-RUN apt-get install -y --no-install-recommends \
-    firefox \
-    xvfb \
-    x11vnc \
-    fluxbox \
-    && rm -rf /var/lib/apt/lists/*
-
-# Set up a minimalistic Fluxbox configuration
-RUN mkdir -p /root/.fluxbox
-RUN echo "session.screen0.rootCommand: fbsetbg -solid \"#2E2E2E\"" >> /root/.fluxbox/init
-RUN echo "session.screen0.toolbar.visible: false" >> /root/.fluxbox/init
-RUN echo "session.screen0.workspaceNames: 1" >> /root/.fluxbox/init
-RUN echo "session.screen0.workspaces: 1" >> /root/.fluxbox/init
-RUN echo "session.screen0.toolbar.slit.placement: ScreenRight" >> /root/.fluxbox/init
-RUN echo "session.screen0.toolbar.slit.autoHide: true" >> /root/.fluxbox/init
-RUN echo "session.screen0.toolbar.slit.maxOver: false" >> /root/.fluxbox/init
-RUN echo "session.screen0.toolbar.slit.maxUnder: false" >> /root/.fluxbox/init
-RUN echo "session.screen0.toolbar.slit.onTop: false" >> /root/.fluxbox/init
-RUN echo "session.screen0.toolbar.slitLayer: Normal" >> /root/.fluxbox/init
-RUN echo "session.screen0.tab.placement: TopRight" >> /root/.fluxbox/init
-RUN echo "session.screen0.tab.width: 64" >> /root/.fluxbox/init
-RUN echo "session.screen0.iconbar.mode: Workspace" >> /root/.fluxbox/init
-RUN echo "session.screen0.menuFile: /etc/X11/fluxbox/fluxbox-menu" >> /root/.fluxbox/init
-
-# Set up the entry point script
-COPY entrypoint.sh /usr/bin/entrypoint.sh
-RUN chmod +x /usr/bin/entrypoint.sh
-
-# Expose the VNC port
-EXPOSE 5900
-
-# Specify the command to run on container startup
-CMD ["/usr/bin/entrypoint.sh"]
+# Start shellinabox
+CMD ["/usr/bin/shellinaboxd", "-t", "-s", "/:LOGIN"]
